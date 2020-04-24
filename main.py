@@ -90,7 +90,6 @@ def readPlays():
 	plays = list()
 	for i in range( 1, numberOfXmlFiles ):
 		addXMLToPlays( i, plays )
-	print( 'found {} plays.'.format( len(plays) ) )
 	return plays
 
 def getFirstPlayDate( plays ):
@@ -143,26 +142,6 @@ def calcCountMoreThan( countPerGame, threshold ):
 			totalCount += 1
 	return totalCount
 
-def makePlot( xValues, yValues, title = '' ):
-	# x axis values 
-	x = xValues
-	# corresponding y axis values 
-	y = yValues
-	  
-	# plotting the points  
-	plt.plot(x, y) 
-	  
-	# naming the x axis 
-	plt.xlabel('x - axis') 
-	# naming the y axis 
-	plt.ylabel('y - axis') 
-	  
-	# giving a title to my graph 
-	plt.title( title ) 
-	  
-	# function to show the plot 
-	plt.show()
-
 def plotCountsAndGamesAndH():
 	plays = readPlays()
 	datesForPlot = getDateListSince( getFirstPlayDate( plays ) )
@@ -180,29 +159,22 @@ def plotCountsAndGamesAndH():
 		# Calculate h index for this date.
 		hIndicesForPlot.append( calcHIndex( countPerGame ) )
 
-	# addPlotLine( thePlot, datesForPlot, totalPlaysForPlot, 'total plays history' )
-	# addPlotLine( thePlot, datesForPlot, distinctGamesForPlot, 'games played history' )
-	# addPlotLine( thePlot, datesForPlot, hIndicesForPlot, 'h index history' )
-
 	fig, ax1 = plt.subplots()
 
-	color = 'tab:blue'
+	color = 'tab:red'
 	ax1.set_xlabel( 'time' )
-	ax1.set_ylabel( 'games/plays played', color=color )
-	ax1.plot( datesForPlot, totalPlaysForPlot, color=color )
-	ax1.plot( datesForPlot, distinctGamesForPlot, color='tab:green' )
+	ax1.set_ylabel( 'h index', color=color )
+	ax1.plot( datesForPlot, hIndicesForPlot, color=color )
 	ax1.tick_params( axis='y', labelcolor=color )
 
 	ax2 = ax1.twinx()
-	color = 'tab:red'
-	ax2.set_ylabel( 'h index', color=color )
-	ax2.plot( datesForPlot, hIndicesForPlot, color=color )
+	color = 'tab:blue'
+	ax2.set_ylabel( 'games/plays played', color=color )
+	ax2.plot( datesForPlot, totalPlaysForPlot, color=color )
+	ax2.plot( datesForPlot, distinctGamesForPlot, color='tab:green' )
 	ax2.tick_params( axis='y', labelcolor=color )
 
 	fig.tight_layout()
-	# plt.plot( datesForPlot, totalPlaysForPlot, 'b' )
-	# plt.plot( datesForPlot, distinctGamesForPlot, 'r' )
-	# plt.plot( datesForPlot, hIndicesForPlot, 'g' )
 	plt.title( 'BGG history' )
 	plt.show()
 
@@ -222,15 +194,21 @@ def printHIndexHistory():
 		countPerGame = countPerGameFromPlaysSince( plays, date )
 		# Calculate h index for this date.
 		h = calcHIndex( countPerGame )
-		# if ( dateFromStr( '2015-11-08' ) <= date and date <= dateFromStr( '2015-11-15' ) ):
-		# 	print( '{}, h: {}'.format( date, h ) )
-		# 	print( countPerGame )
 		if ( h > maxH ):
 			maxH = h
-			# print( countPerGame )
 			hGames = getHGames( countPerGame, h )
 			hGames.sort()
 			print( '{}, H: {}, {} games: {}'.format( date.strftime('%Y-%m-%d'), h, len(hGames), hGames ) )
+
+def printSpecificStats( namePart ):
+	countPerGame = countPerGameFromPlays( readPlays() )
+	countPerGameList = list( countPerGame.items() )
+	countPerGameList.sort( key = lambda x : (x[0]) )
+	countPerGameList.sort( key = lambda x : (x[1]), reverse = True )
+	for index in range( len(countPerGameList) ):
+		entry = countPerGameList[index]
+		if namePart.lower() in entry[0].lower():
+			print( '{}\t{}\t{}'.format( index + 1, entry[1], entry[0] ) )
 
 def printStats():
 	plays = readPlays()
@@ -241,23 +219,32 @@ def printStats():
 	print( 'Current # fives: {}'.format( calcCountMoreThan( countPerGame, 5 ) ) )
 	printCounts( countPerGame, dimeCount )
 
-def getInput( question ):
+def getBoolInput( question ):
 	inputText = question + ' (Y/y) for yes. --> '
 	answer = input( inputText )
 	return answer.lower() == 'y'
 
-def main():
-	if getInput( 'Update play history?' ):
-		updateXMLFilesFromWeb()
+def getStringInput( question ):
+	inputText = question + ' --> '
+	return input( inputText )
 
-	if getInput( 'Plot graphs?' ):
+def main():
+	if getBoolInput( 'Update play history?' ):
+		updateXMLFilesFromWeb()
+		plays = readPlays()
+		print( 'Found {} plays.'.format( len(plays) ) )
+
+	if getBoolInput( 'Plot graphs?' ):
 		plotCountsAndGamesAndH()
 
-	if getInput( 'Print H-index history?' ):
+	if getBoolInput( 'Print H-index history?' ):
 		printHIndexHistory()
 
-	if getInput( 'Print stats?' ):
+	if getBoolInput( 'Print stats?' ):
 		printStats()
+
+	while getBoolInput( 'Print specific stat?' ):
+		printSpecificStats( getStringInput( 'Game name?' ) )
 		
 
 if __name__ == "__main__":
